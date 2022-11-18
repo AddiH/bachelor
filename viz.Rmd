@@ -1,0 +1,222 @@
+---
+title: "viz"
+author: "Astrid Elmann Hansen"
+date: '2022-11-05'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+pacman::p_load(tidyverse, ggcorrplot, RColorBrewer)
+df <- read_csv("clean_answers.csv")
+df <- df %>% 
+  filter(job == "Arbejdende" | job == "Studerende") %>% 
+  filter(gender == "Kvinde" | gender == "Mand") %>% 
+  filter(age >= 18 & age <= 30) %>% 
+  select(age, gender, job, wb, self_oriented, other_oriented, socially_prescribed)
+
+df$gender <- as.factor(df$gender)
+df$job <- as.factor(df$job)
+
+men <- df %>% filter(gender == "Mand")
+women <- df %>% filter(gender == "Kvinde")
+```
+
+
+```{r demografics, echo=FALSE, message = FALSE}
+df %>% ggplot(aes(x = age)) + geom_density() + theme_bw()
+
+p <- df %>% ggplot(aes(x = gender, fill = gender)) + geom_bar() + theme_bw()
+p_dt <- layer_data(p)
+p + annotate(geom = "text", label = p_dt$count, x = p_dt$x, y = p_dt$y + 5)
+
+p <- df %>% ggplot(aes(x = job, fill = job)) + geom_bar() + scale_fill_brewer(palette = "Accent") + theme_bw()
+p_dt <- layer_data(p)
+p + annotate(geom = "text", label = p_dt$count, x = p_dt$x, y = p_dt$y + 5)
+
+df %>% ggplot(aes(x = age, fill = gender)) + geom_histogram() + facet_wrap(~job)  + theme_bw()
+```
+
+
+> Hvordan har vi det med størrelserne i vores grupper? Er der nok mænd/arbejdede/25 + ?
+
+
+```{r, echo=FALSE, message = FALSE}
+# http://www.sthda.com/english/wiki/ggcorrplot-visualization-of-a-correlation-matrix-using-ggplot2
+p.mat <- model.matrix(~0+., data=df) %>% 
+  cor_pmat(use = "pairwise.complete.obs")
+
+# https://stackoverflow.com/questions/52554336/plot-the-equivalent-of-correlation-matrix-for-factors-categorical-data-and-mi
+model.matrix(~0+., data=df) %>% 
+  cor(use = "pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag = F, type="lower", lab=F, lab_size=4, p.mat = p.mat, hc.order = TRUE)
+```
+
+
+> Wellbeing bliver negativt påvirket af 2 perfection dimensions (self og socially) 
+
+> De 3 dimensioner correlerer
+
+> Mænd er gladere end kvinder
+
+> (Studerende er yngre end arbejdede)
+
+
+```{r age on dimensions, echo=FALSE, message = FALSE}
+ df %>% ggplot(aes(x = age, y = wb)) + 
+   geom_point(aes(color = gender)) + 
+   geom_smooth(method = "lm") + 
+   geom_hline(yintercept = c(14, 70)) + 
+   ggtitle("Wellbeing")
+ 
+ df %>% ggplot(aes(x = age, y = self_oriented)) + 
+   geom_point(aes(color = gender)) + 
+   geom_smooth(method = "lm") + 
+   geom_hline(yintercept = c(15, 105)) + 
+   ggtitle("Self oriented")
+ 
+ df %>% ggplot(aes(x = age, y = other_oriented)) + 
+   geom_point(aes(color = gender)) + 
+   geom_smooth(method = "lm") + 
+   geom_hline(yintercept = c(15, 105)) + 
+   ggtitle("Other oriented")
+ 
+ df %>% ggplot(aes(x = age, y = socially_prescribed)) + 
+   geom_point(aes(color = gender)) + 
+   geom_smooth(method = "lm") + 
+   geom_hline(yintercept = c(15, 105)) + 
+   ggtitle("Socially prescribed")
+```
+
+
+```{r histograms gender, echo=FALSE, message = FALSE}
+ df %>% ggplot(aes(x = wb, fill = gender)) + 
+   geom_histogram() + 
+   geom_vline(xintercept = c(14, 70)) + 
+   ggtitle("Wellbeing") +
+   geom_vline(xintercept = mean(men$wb), color = "blue") +
+   geom_vline(xintercept = mean(women$wb), color = "red")
+ 
+ df %>% ggplot(aes(x = self_oriented, fill = gender)) + 
+   geom_histogram() + 
+   geom_vline(xintercept = c(15, 105)) + 
+   ggtitle("Self oriented") +
+   geom_vline(xintercept = mean(men$self_oriented), color = "blue") +
+   geom_vline(xintercept = mean(women$self_oriented), color = "red")
+ 
+ df %>% ggplot(aes(x = other_oriented, fill = gender)) + 
+   geom_histogram() + 
+   geom_vline(xintercept = c(15, 105)) + 
+   ggtitle("Other oriented") +
+   geom_vline(xintercept = mean(men$other_oriented), color = "blue") +
+   geom_vline(xintercept = mean(women$other_oriented), color = "red")
+ 
+ df %>% ggplot(aes(x = socially_prescribed, fill = gender)) + 
+   geom_histogram() + 
+   geom_vline(xintercept = c(15, 105)) + 
+   ggtitle("Socially prescribed") +
+   geom_vline(xintercept = mean(men$socially_prescribed), color = "blue") +
+   geom_vline(xintercept = mean(women$socially_prescribed), color = "red")
+```
+
+
+
+```{r, echo=FALSE, message = FALSE}
+df %>% ggplot(aes(x = socially_prescribed, y = self_oriented, color = other_oriented, size = other_oriented)) +
+#  geom_smooth(method = "lm")
+  geom_point() +
+  ggtitle("Correlation of 3 perfectionism dimensions")+
+  theme_bw()
+```
+
+> Er det ok at dimensionerne correlerer? Hvad betyder det for vores teori?
+
+
+```{r, echo=FALSE, message = FALSE}
+ df %>% ggplot(aes(x = self_oriented, y = wb)) + 
+   geom_point(aes(color = gender)) + 
+   geom_smooth(method = "lm") + 
+   geom_hline(yintercept = c(14, 70)) + 
+   geom_vline(xintercept = c(15, 105)) + 
+   facet_wrap(~gender) +
+   ggtitle("Wellbeing ~ Self oriented perfectionism")
+ 
+ df %>% ggplot(aes(x = other_oriented, y = wb)) + 
+   geom_point(aes(color = gender)) + 
+   geom_smooth(method = "lm") + 
+   geom_hline(yintercept = c(14, 70)) + 
+   geom_vline(xintercept = c(15, 105)) + 
+   facet_wrap(~gender)  +
+   ggtitle("Wellbeing ~ Other oriented perfectionism")
+ 
+ df %>% ggplot(aes(x = socially_prescribed, y = wb)) + 
+   geom_point(aes(color = gender)) + 
+   geom_smooth(method = "lm") + 
+   geom_hline(yintercept = c(14, 70)) + 
+   geom_vline(xintercept = c(15, 105)) + 
+   facet_wrap(~gender) +
+   ggtitle("Wellbeing ~ Socially pescribed perfectionism")
+```
+
+```{r, echo=FALSE, message = FALSE}
+# person <- df %>% filter(time == '-') %>% select(time, wb, self_oriented, other_oriented, socially_prescribed)
+```
+
+```{r, echo=FALSE, message = FALSE}
+wb <- df %>% select(age, gender, job, wb) %>% 
+  mutate(type = "Wellbeing") %>% 
+  rename("value" = "wb")
+
+wb$wb <- wb$value
+
+self_oriented <- df %>% select(age, gender, job, self_oriented, wb) %>% 
+  mutate(type = "Self oriented") %>% 
+  rename("value" = "self_oriented")
+
+other_oriented <- df %>% select(age, gender, job, other_oriented, wb) %>% 
+  mutate(type = "Other oriented") %>% 
+  rename("value" = "other_oriented")
+
+socially_prescribed <- df %>% select(age, gender, job, socially_prescribed, wb) %>% 
+  mutate(type = "Socially pescribed") %>% 
+  rename("value" = "socially_prescribed")
+
+pivot <- rbind(wb, self_oriented, other_oriented, socially_prescribed)
+```
+
+
+
+```{r, echo=FALSE, message = FALSE}
+pivot %>%  
+  ggplot(aes(x = value, fill = gender)) + 
+  geom_histogram() +
+  ggtitle("Genders and datatypes - histogram") +
+  theme_bw() +
+  facet_wrap(~type)
+
+pivot %>%  
+  ggplot(aes(x = value, fill = gender)) + 
+  geom_density(alpha = .5) +
+  ggtitle("Genders and datatypes - density") +
+  theme_bw() +
+  facet_wrap(~type)
+```
+
+```{r, echo=FALSE, message = FALSE}
+pivot %>% ggplot(aes(x = age, y = value, color = type)) + 
+  geom_jitter() +
+  geom_smooth(method = "lm") +
+  ggtitle("Age predicting each data type") +
+  theme_bw() +
+  facet_wrap(~gender)
+```
+
+```{r, echo=FALSE, message = FALSE}
+pivot %>% filter(type != "Wellbeing") %>% 
+  ggplot(aes(x = value, y = wb, color = gender)) + 
+  geom_jitter() +
+  geom_smooth(method = "lm") +
+  ggtitle("Dimensions predicting wellbeing") +
+  theme_bw() +
+  facet_wrap(~type) +
+  theme(aspect.ratio = 1.5) 
+```

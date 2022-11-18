@@ -1,0 +1,35 @@
+---
+title: "pca"
+author: "Astrid Elmann Hansen"
+date: '2022-11-05'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+pacman::p_load(tidyverse, ggcorrplot, RColorBrewer)
+df <- read_csv("clean_answers.csv")
+p <- df %>% 
+  filter(job == "Arbejdende" | job == "Studerende") %>% 
+  filter(gender == "Kvinde" | gender == "Mand") %>% 
+  filter(age >= 18 & age <= 30) %>% 
+  select(20:64)
+```
+
+
+```{r}
+# http://www.sthda.com/english/wiki/ggcorrplot-visualization-of-a-correlation-matrix-using-ggplot2
+p.mat <- model.matrix(~0+., data=p) %>% 
+  cor_pmat(use = "pairwise.complete.obs")
+
+# https://stackoverflow.com/questions/52554336/plot-the-equivalent-of-correlation-matrix-for-factors-categorical-data-and-mi
+model.matrix(~0+., data=p) %>% 
+  cor(use = "pairwise.complete.obs") %>% 
+  ggcorrplot(show.diag = F, type="lower", lab=F, lab_size=4, p.mat = p.mat, hc.order = TRUE)
+```
+
+```{r}
+corr <- cor(p)
+p.mat <- cor_pmat(mtcars)
+ggcorrplot(corr)
+```
+
